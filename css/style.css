@@ -64,6 +64,20 @@ a {
     background: #FFF;
 }
 
+.thread-editor-shell {
+    padding: 0;
+    border: 1px solid #AAA17F;
+    background: #F4F0DB;
+}
+
+.thread-featured-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #333;
+}
+
 .editor-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -238,6 +252,183 @@ a {
     line-height: 1.6;
 }
 
+.post.is-editing {
+    background: #FFFBE8;
+    border-left: 3px solid #D4B562;
+    margin-left: -8px;
+    padding: 4px 0 6px 8px;
+}
+
+.post-inline-editor {
+    margin-top: 8px;
+}
+
+.post-editor-shell {
+    margin: 18px 0;
+    border: 1px solid #AAA17F;
+    background: #F4F0DB;
+    overflow-x: auto;
+}
+
+.post-editor-shell.is-inline {
+    margin: 10px 0 6px 40px;
+}
+
+.post-editor-heading {
+    background: #D7CEAA;
+    border-bottom: 1px solid #AAA17F;
+    color: #433;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 4px 8px;
+}
+
+.post-editor-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.post-editor-table th,
+.post-editor-table td {
+    border: 1px solid #C8C09E;
+    padding: 6px 8px;
+    vertical-align: top;
+}
+
+.post-editor-table th {
+    width: 100px;
+    white-space: nowrap;
+    font-weight: normal;
+    color: #333;
+    background: #ECE4C6;
+}
+
+.post-editor-table td {
+    background: #FFFEF7;
+}
+
+.post-editor-table input,
+.post-editor-table select,
+.post-editor-table textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #9C9C9C;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.post-editor-table textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.quote-builder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.quote-builder-label {
+    font-size: 13px;
+    color: #444;
+}
+
+.quote-number-input {
+    width: 72px;
+    min-width: 72px;
+    max-width: 72px;
+}
+
+.quote-builder button {
+    border: 1px solid #888;
+    background: #ECECEC;
+    color: #222;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.quote-chip-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.quote-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #F2EBCF;
+    border: 1px solid #B7AD87;
+    padding: 1px 6px;
+    font-size: 12px;
+}
+
+.quote-chip button {
+    border: 1px solid #999;
+    background: #F8F8F8;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.post-uid-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.post-uid-controls.no-wrap {
+    flex-wrap: nowrap;
+}
+
+.post-uid-controls.no-wrap select {
+    flex: 1 1 auto;
+}
+
+.post-uid-controls.no-wrap .post-uid-value-wrap {
+    flex: 0 0 260px;
+}
+
+.post-uid-value-wrap {
+    align-items: center;
+    gap: 6px;
+}
+
+.post-inline-label {
+    font-size: 12px;
+    color: #555;
+}
+
+.post-editor-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border-top: 1px solid #C8C09E;
+    background: #EFE6C8;
+}
+
+.post-editor-actions button {
+    border: 1px solid #888;
+    background: #ECECEC;
+    color: #222;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.post-editor-hint {
+    padding: 0 8px 8px;
+    font-size: 12px;
+    color: #555;
+}
+
 /* Special styling */
 .fake-trans {
     border-left: 3px solid #CCC;
@@ -302,6 +493,49 @@ a {
     .post-body {
         padding-left: 20px;
         /* Slightly less indent on small screens */
+    }
+
+    .post-editor-shell.is-inline {
+        margin: 8px 0 6px 0;
+    }
+
+    .post-editor-table {
+        min-width: 700px;
+        font-size: 13px;
+    }
+
+    .post-uid-controls.no-wrap {
+        gap: 4px;
+    }
+
+    .post-uid-controls.no-wrap .post-uid-value-wrap {
+        flex: 0 0 170px;
+    }
+
+    .post-editor-table input[name="name"] {
+        width: 140px;
+    }
+
+    .post-editor-table input[name="authorKey"] {
+        width: 110px;
+    }
+
+    .post-editor-table input[name="uidColor"] {
+        width: 96px;
+    }
+
+    .post-editor-table input[name="uidValue"] {
+        width: 120px;
+    }
+
+    .post-editor-table select[name="uidMode"] {
+        width: 145px;
+    }
+
+    .quote-number-input {
+        width: 64px;
+        min-width: 64px;
+        max-width: 64px;
     }
 
     .editor-grid {
