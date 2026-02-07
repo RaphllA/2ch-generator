@@ -1,5 +1,11 @@
 ﻿const STATE_KEY = 'tukuyomi-2ch-state-v1';
 const UI_MODE_KEY = 'tukuyomi-2ch-ui-mode';
+const STATE_SCHEMA_VERSION = 2;
+const DATA_VERSION = 1;
+const APP_STATE_DB_NAME = 'Tukuyomi2chDB';
+const APP_STATE_DB_VERSION = 1;
+const APP_STATE_STORE = 'appState';
+const APP_STATE_RECORD_KEY = 'current';
 
 function escapeHtml(text) {
   return String(text || '')
@@ -58,6 +64,12 @@ function safeThreadId(input) {
   return id;
 }
 
+
+
+function cloneDeep(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 class App {
   constructor() {
     this.container = document.querySelector('.container');
@@ -66,6 +78,8 @@ class App {
     this.editingPostNumber = null;
     this.uiMode = this.loadUiMode();
     this.state = null;
+    this._dbPromise = null;
+    this._persistQueue = Promise.resolve();
     this._seedWaiter = null;
   }
 
@@ -85,25 +99,195 @@ class App {
     } catch { }
   }
 
-  loadState() {
+  normalizeStateShape(raw) {
+    if (!raw || !Array.isArray(raw.threads)) return null;
+    return {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      dataVersion: Number.isFinite(raw.dataVersion) ? raw.dataVersion : 0,
+      threads: cloneDeep(raw.threads)
+    };
+  }
+
+  mergePosts(defaultPosts, savedPosts) {
+    const base = Array.isArray(defaultPosts) ? defaultPosts : [];
+    const saved = Array.isArray(savedPosts) ? savedPosts : [];
+    const savedMap = new Map(saved.map((post) => [Number(post?.number || 0), post]));
+    const merged = [];
+
+    for (const post of base) {
+      const number = Number(post?.number || 0);
+      const savedPost = savedMap.get(number);
+      merged.push(savedPost ? { ...cloneDeep(post), ...cloneDeep(savedPost) } : cloneDeep(post));
+    }
+
+    const baseNumbers = new Set(base.map((post) => Number(post?.number || 0)));
+    for (const post of saved) {
+      const number = Number(post?.number || 0);
+      if (!baseNumbers.has(number)) {
+        merged.push(cloneDeep(post));
+      }
+    }
+
+    merged.sort((a, b) => Number(a?.number || 0) - Number(b?.number || 0));
+    return merged;
+  }
+
+  mergeThreads(defaultThreads, savedThreads) {
+    const base = Array.isArray(defaultThreads) ? defaultThreads : [];
+    const saved = Array.isArray(savedThreads) ? savedThreads : [];
+    const savedMap = new Map(saved.map((thread) => [String(thread?.id || ''), thread]));
+    const merged = [];
+
+    for (const thread of base) {
+      const id = String(thread?.id || '');
+      const savedThread = savedMap.get(id);
+      if (!savedThread) {
+        merged.push(cloneDeep(thread));
+        continue;
+      }
+
+      const next = { ...cloneDeep(thread), ...cloneDeep(savedThread) };
+      next.posts = this.mergePosts(thread.posts, savedThread.posts);
+      next.authors = { ...(thread.authors || {}), ...(savedThread.authors || {}) };
+      merged.push(next);
+    }
+
+    const baseIds = new Set(base.map((thread) => String(thread?.id || '')));
+    for (const thread of saved) {
+      const id = String(thread?.id || '');
+      if (!baseIds.has(id)) {
+        merged.push(cloneDeep(thread));
+      }
+    }
+    return merged;
+  }
+
+  mergeState(defaultState, savedState) {
+    const base = this.normalizeStateShape(defaultState) || { schemaVersion: STATE_SCHEMA_VERSION, dataVersion: DATA_VERSION, threads: [] };
+    const saved = this.normalizeStateShape(savedState);
+    if (!saved) return base;
+    return {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      dataVersion: DATA_VERSION,
+      threads: this.mergeThreads(base.threads, saved.threads)
+    };
+  }
+
+  readLegacyStateFromLocalStorage() {
     try {
       const raw = localStorage.getItem(STATE_KEY);
       if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.threads)) return null;
-      return parsed;
+      return JSON.parse(raw);
     } catch {
       return null;
     }
   }
 
-  saveState() {
+  clearLegacyStateFromLocalStorage() {
     try {
-      localStorage.setItem(STATE_KEY, JSON.stringify(this.state));
-    } catch (e) {
-      alert('保存失败：localStorage 可能已满或被禁用。');
-      console.warn('Save failed:', e);
+      localStorage.removeItem(STATE_KEY);
+    } catch { }
+  }
+
+  async openStateDb() {
+    if (this._dbPromise) return this._dbPromise;
+    if (!window.indexedDB) return null;
+
+    this._dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(APP_STATE_DB_NAME, APP_STATE_DB_VERSION);
+      req.onerror = () => reject(req.error || new Error('Failed to open IndexedDB'));
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(APP_STATE_STORE)) {
+          db.createObjectStore(APP_STATE_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+    }).catch((err) => {
+      console.warn('IndexedDB unavailable, fallback to localStorage:', err);
+      return null;
+    });
+
+    return this._dbPromise;
+  }
+
+  async readStateFromIndexedDb() {
+    const db = await this.openStateDb();
+    if (!db) return null;
+    return await new Promise((resolve) => {
+      const tx = db.transaction([APP_STATE_STORE], 'readonly');
+      const store = tx.objectStore(APP_STATE_STORE);
+      const req = store.get(APP_STATE_RECORD_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  async writeStateToIndexedDb(state) {
+    const db = await this.openStateDb();
+    if (!db) return false;
+    return await new Promise((resolve) => {
+      const tx = db.transaction([APP_STATE_STORE], 'readwrite');
+      const store = tx.objectStore(APP_STATE_STORE);
+      const req = store.put(cloneDeep(state), APP_STATE_RECORD_KEY);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    });
+  }
+
+  async loadState(defaultState) {
+    const baseState = this.normalizeStateShape(defaultState) || { schemaVersion: STATE_SCHEMA_VERSION, dataVersion: DATA_VERSION, threads: [] };
+    let fromLegacy = false;
+
+    let persisted = await this.readStateFromIndexedDb();
+    if (!persisted) {
+      persisted = this.readLegacyStateFromLocalStorage();
+      fromLegacy = Boolean(persisted);
     }
+
+    const savedState = this.normalizeStateShape(persisted);
+    let nextState = baseState;
+    if (savedState) {
+      nextState = savedState.dataVersion >= DATA_VERSION
+        ? {
+          schemaVersion: STATE_SCHEMA_VERSION,
+          dataVersion: savedState.dataVersion,
+          threads: cloneDeep(savedState.threads)
+        }
+        : this.mergeState(baseState, savedState);
+    }
+
+    nextState.schemaVersion = STATE_SCHEMA_VERSION;
+    nextState.dataVersion = DATA_VERSION;
+    this.state = nextState;
+    this.saveState();
+
+    if (fromLegacy) {
+      this.clearLegacyStateFromLocalStorage();
+    }
+
+    return nextState;
+  }
+
+  saveState() {
+    const snapshot = cloneDeep(this.state || { schemaVersion: STATE_SCHEMA_VERSION, dataVersion: DATA_VERSION, threads: [] });
+    this._persistQueue = this._persistQueue
+      .then(async () => {
+        const ok = await this.writeStateToIndexedDb(snapshot);
+        if (!ok) {
+          localStorage.setItem(STATE_KEY, JSON.stringify(snapshot));
+          return;
+        }
+        this.clearLegacyStateFromLocalStorage();
+      })
+      .catch((e) => {
+        console.warn('Save failed:', e);
+        try {
+          localStorage.setItem(STATE_KEY, JSON.stringify(snapshot));
+        } catch (fallbackErr) {
+          console.warn('Fallback localStorage save failed:', fallbackErr);
+        }
+      });
   }
 
   async init() {
@@ -121,12 +305,9 @@ class App {
       }
     }
 
-    this.state = this.loadState();
-    if (!this.state) {
-      this.container.innerHTML = `<p>Loading data...</p>`;
-      this.state = await this.seedFromFiles();
-      this.saveState();
-    }
+    this.container.innerHTML = `<p>Loading data...</p>`;
+    const defaultState = await this.seedFromFiles();
+    this.state = await this.loadState(defaultState);
 
     this.bindEvents();
     this.render();
@@ -253,7 +434,8 @@ class App {
     }
 
     return {
-      schemaVersion: 1,
+      schemaVersion: STATE_SCHEMA_VERSION,
+      dataVersion: DATA_VERSION,
       threads
     };
   }
@@ -301,7 +483,7 @@ class App {
         return;
       }
       if (action === 'submit-thread') {
-        this.submitThread();
+        alert('投稿功能暂未开放，当前版本仅支持本地编辑与保存。');
         return;
       }
       if (action === 'cancel-thread-form') {
@@ -558,8 +740,6 @@ class App {
           <a href="../hub/">Hub</a><span class="sep">|</span><a href="../">Twitter</a>
           <span class="sep">|</span>
           <a href="#" data-action="toggle-mode">${isEdit ? '查看模式' : '编辑模式'}</a>
-          <span class="sep">|</span>
-          <a href="#" data-action="submit-thread">投稿</a>
         </div>
       </div>
       <h1 class="thread-title">${titleHtml}</h1>
@@ -931,7 +1111,7 @@ class App {
     const transEl = form.querySelector('textarea[name="trans"]');
     if (transEl instanceof HTMLTextAreaElement) transEl.value = '';
 
-    const wrap = form.querySelector('.post-uid-value-wrap');
+    const wrap = form.querySelector('.uid-custom-wrap');
     if (wrap instanceof HTMLElement) wrap.style.display = 'none';
     this.syncQuoteUi(form);
   }
@@ -1019,82 +1199,8 @@ class App {
     this.renderThread(thread.id);
   }
 
-  getSubmissionConfig() {
-    const cfg = (window.APP_SUBMISSION_CONFIG && typeof window.APP_SUBMISSION_CONFIG === 'object')
-      ? window.APP_SUBMISSION_CONFIG
-      : {};
-    const endpoint = typeof cfg.endpoint === 'string' && cfg.endpoint.trim()
-      ? cfg.endpoint.trim()
-      : '/api/submissions';
-    const projectKey = typeof cfg.projectKey === 'string' ? cfg.projectKey.trim() : '';
-    return { endpoint, projectKey };
-  }
-
   async submitThread() {
-    const thread = this.getThread(this.currentThreadId);
-    if (!thread) return;
-
-    const { endpoint, projectKey } = this.getSubmissionConfig();
-    if (!endpoint) {
-      alert('未配置投稿后端 endpoint。');
-      return;
-    }
-
-    const authorDisplayName = prompt('署名(可选)：', '') || '';
-    const authorContact = prompt('联系方式(可选)：', '') || '';
-    const showAuthorOnContent = confirm('是否在内容中展示署名？');
-    const note = prompt('备注(可选)：', '') || '';
-
-    const payload = {
-      thread: {
-        id: thread.id,
-        title: thread.titleText,
-        subtitle: thread.subtitleText || '',
-        featured: Boolean(thread.featured),
-        posts: (thread.posts || []).map((p) => {
-          const author = (thread.authors || {})[p.authorKey] || { uidMode: 'random', uidValue: '', uidColor: '' };
-          return {
-            number: p.number,
-            name: p.name,
-            authorKey: p.authorKey,
-            uidMode: author.uidMode,
-            uidValue: author.uidValue,
-            uidColor: author.uidColor || '',
-            body: p.body,
-            bodyColor: p.bodyColor || '',
-            date: p.date
-          };
-        })
-      }
-    };
-
-    const body = {
-      schemaVersion: 1,
-      source: '2ch',
-      projectKey: projectKey || undefined,
-      payload,
-      authorDisplayName: authorDisplayName || undefined,
-      authorContact: authorContact || undefined,
-      showAuthorOnContent,
-      note: note || undefined
-    };
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(`投稿失败: ${data.error || res.status}`);
-        return;
-      }
-      alert(`投稿成功，ID: ${data.id}`);
-    } catch (e) {
-      console.error(e);
-      alert('投稿失败：网络错误。');
-    }
+    alert('投稿功能暂未开放，当前版本仅支持本地编辑与保存。');
   }
 
   getAuthorUid(thread, authorKey) {
@@ -1163,4 +1269,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.container').innerHTML = `<p style="color:red">Error: ${escapeHtml(e.message || String(e))}</p>`;
   });
 });
+
 
