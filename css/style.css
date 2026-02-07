@@ -66,8 +66,16 @@ a {
 
 .thread-editor-shell {
     padding: 0;
-    border: 1px solid #AAA17F;
-    background: #F4F0DB;
+    border: 1px solid #BBB;
+    background: #E8E8E8;
+}
+
+.thread-editor-shell .post-editor-heading {
+    color: #00E;
+}
+
+.thread-editor-shell .editor-field .label {
+    color: #00E;
 }
 
 .thread-featured-check {
@@ -76,6 +84,12 @@ a {
     gap: 6px;
     font-size: 14px;
     color: #333;
+    justify-content: flex-start;
+}
+
+.thread-featured-check input[type="checkbox"] {
+    width: auto;
+    flex: 0 0 auto;
 }
 
 .editor-grid {
@@ -252,21 +266,14 @@ a {
     line-height: 1.6;
 }
 
-.post.is-editing {
-    background: #FFFBE8;
-    border-left: 3px solid #D4B562;
-    margin-left: -8px;
-    padding: 4px 0 6px 8px;
-}
-
 .post-inline-editor {
     margin-top: 8px;
 }
 
 .post-editor-shell {
     margin: 18px 0;
-    border: 1px solid #AAA17F;
-    background: #F4F0DB;
+    border: 1px solid #BBB;
+    background: #E8E8E8;
     overflow-x: auto;
 }
 
@@ -275,56 +282,116 @@ a {
 }
 
 .post-editor-heading {
-    background: #D7CEAA;
-    border-bottom: 1px solid #AAA17F;
-    color: #433;
+    background: #D0D0D0;
+    border-bottom: 1px solid #BBB;
+    color: #2A6A2A;
     font-size: 14px;
     font-weight: bold;
-    padding: 4px 8px;
+    padding: 6px 10px;
 }
 
-.post-editor-table {
-    width: 100%;
-    min-width: 720px;
-    border-collapse: collapse;
-    font-size: 14px;
+/* ── Responsive Grid Editor ── */
+.editor-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    background: #F7F7F7;
+    border-bottom: 1px solid #CCC;
 }
 
-.post-editor-table th,
-.post-editor-table td {
-    border: 1px solid #C8C09E;
-    padding: 6px 8px;
-    vertical-align: top;
+.editor-field {
+    display: flex;
+    flex-direction: column;
+    padding: 7px 10px;
+    border-bottom: 1px solid #DDD;
+    border-right: 1px solid #DDD;
+    min-width: 0;
 }
 
-.post-editor-table th {
-    width: 100px;
-    white-space: nowrap;
-    font-weight: normal;
-    color: #333;
-    background: #ECE4C6;
+.editor-field:nth-child(2n) {
+    border-right: none;
 }
 
-.post-editor-table td {
-    background: #FFFEF7;
+.editor-field.full {
+    grid-column: 1 / -1;
+    border-right: none;
 }
 
-.post-editor-table input,
-.post-editor-table select,
-.post-editor-table textarea {
+.editor-field .label {
+    display: block;
+    font-size: 12px;
+    color: #2A6A2A;
+    font-weight: bold;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+
+.editor-field .field-hint {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-top: 3px;
+}
+
+.editor-field input,
+.editor-field select,
+.editor-field textarea {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid #9C9C9C;
-    padding: 4px 6px;
+    border: 1px solid #BBB;
+    border-radius: 2px;
+    padding: 5px 7px;
     font-family: inherit;
     font-size: 14px;
+    background: #FFF;
+    transition: border-color 0.15s;
 }
 
-.post-editor-table textarea {
+.editor-field input:focus,
+.editor-field select:focus,
+.editor-field textarea:focus {
+    outline: none;
+    border-color: #3A7ABB;
+    box-shadow: 0 0 0 2px rgba(58, 122, 187, 0.15);
+}
+
+.editor-field textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 90px;
 }
 
+.editor-field .uid-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.editor-field .uid-row select {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 140px;
+}
+
+.editor-field .uid-row .uid-custom-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.editor-field .uid-row .uid-custom-wrap input {
+    flex: 1;
+    min-width: 0;
+}
+
+.editor-field .uid-inline-label {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+}
+
+/* Quote builder */
 .quote-builder {
     display: flex;
     align-items: center;
@@ -333,14 +400,15 @@ a {
 }
 
 .quote-builder-label {
-    font-size: 13px;
-    color: #444;
+    font-size: 12px;
+    color: #776;
 }
 
 .quote-number-input {
-    width: 72px;
+    width: 72px !important;
     min-width: 72px;
     max-width: 72px;
+    flex: 0 0 72px;
 }
 
 .quote-builder button {
@@ -350,6 +418,11 @@ a {
     padding: 3px 10px;
     font-size: 12px;
     font-family: inherit;
+    cursor: pointer;
+}
+
+.quote-builder button:hover {
+    background: #DDD;
 }
 
 .quote-chip-list {
@@ -357,15 +430,17 @@ a {
     gap: 6px;
     flex-wrap: wrap;
     width: 100%;
+    margin-top: 4px;
 }
 
 .quote-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: #F2EBCF;
-    border: 1px solid #B7AD87;
-    padding: 1px 6px;
+    background: #E8EEF4;
+    border: 1px solid #AAC;
+    border-radius: 2px;
+    padding: 2px 7px;
     font-size: 12px;
 }
 
@@ -375,59 +450,52 @@ a {
     padding: 0 4px;
     font-size: 11px;
     line-height: 1.2;
+    cursor: pointer;
 }
 
-.post-uid-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.post-uid-controls.no-wrap {
-    flex-wrap: nowrap;
-}
-
-.post-uid-controls.no-wrap select {
-    flex: 1 1 auto;
-}
-
-.post-uid-controls.no-wrap .post-uid-value-wrap {
-    flex: 0 0 260px;
-}
-
-.post-uid-value-wrap {
-    align-items: center;
-    gap: 6px;
-}
-
-.post-inline-label {
-    font-size: 12px;
-    color: #555;
-}
-
+/* Editor actions bar */
 .post-editor-actions {
     display: flex;
     gap: 8px;
-    padding: 8px;
-    border-top: 1px solid #C8C09E;
-    background: #EFE6C8;
+    padding: 8px 10px;
+    border-top: 1px solid #CCC;
+    background: #DDD;
 }
 
 .post-editor-actions button {
-    border: 1px solid #888;
+    border: 1px solid #999;
     background: #ECECEC;
     color: #222;
-    padding: 4px 12px;
+    padding: 5px 14px;
     font-size: 13px;
     font-family: inherit;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+}
+
+.post-editor-actions button:hover {
+    background: #E4E4E4;
+}
+
+.post-editor-actions button[type="submit"] {
+    background: #D0E8D0;
+    border-color: #6A9A6A;
+    color: #2A5A2A;
+    font-weight: bold;
+}
+
+.post-editor-actions button[type="submit"]:hover {
+    background: #C0DCC0;
 }
 
 .post-editor-hint {
-    padding: 0 8px 8px;
+    padding: 4px 10px 8px;
     font-size: 12px;
-    color: #555;
+    color: #888;
 }
+
+
 
 /* Special styling */
 .fake-trans {
@@ -472,70 +540,64 @@ a {
     color: #D00;
 }
 
-/* Mobile Responsive - NO SPECIAL OVERRIDES */
-/* The desktop layout is used at all widths for consistency */
-/* Only minimal adjustments for very small screens if needed */
+/* Mobile Responsive */
 @media screen and (max-width: 600px) {
 
-    /* Keep everything the same as desktop, just allow natural text wrapping */
     .container {
         padding: 10px;
-        /* Same as desktop */
         max-width: 100%;
-        /* NO background-color change */
     }
 
     .thread-title {
         font-size: 24px;
-        /* Slightly smaller for readability on small screens */
     }
 
     .post-body {
         padding-left: 20px;
-        /* Slightly less indent on small screens */
+    }
+
+    /* Editor: single column on mobile */
+    .editor-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-field {
+        border-right: none;
+    }
+
+    .editor-field .uid-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .editor-field .uid-row select {
+        width: 100%;
+        min-width: unset;
     }
 
     .post-editor-shell.is-inline {
         margin: 8px 0 6px 0;
     }
 
-    .post-editor-table {
-        min-width: 700px;
-        font-size: 13px;
+    /* Touch-friendly buttons */
+    .post-editor-actions button {
+        min-height: 40px;
+        padding: 8px 16px;
+        font-size: 14px;
     }
 
-    .post-uid-controls.no-wrap {
-        gap: 4px;
-    }
-
-    .post-uid-controls.no-wrap .post-uid-value-wrap {
-        flex: 0 0 170px;
-    }
-
-    .post-editor-table input[name="name"] {
-        width: 140px;
-    }
-
-    .post-editor-table input[name="authorKey"] {
-        width: 110px;
-    }
-
-    .post-editor-table input[name="uidColor"] {
-        width: 96px;
-    }
-
-    .post-editor-table input[name="uidValue"] {
-        width: 120px;
-    }
-
-    .post-editor-table select[name="uidMode"] {
-        width: 145px;
+    .quote-builder button {
+        min-height: 36px;
+        padding: 4px 14px;
     }
 
     .quote-number-input {
-        width: 64px;
+        width: 64px !important;
         min-width: 64px;
         max-width: 64px;
+        flex: 0 0 64px;
+        min-height: 36px;
     }
 
     .editor-grid {

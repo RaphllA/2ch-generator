@@ -349,9 +349,9 @@ class App {
       if (!(el instanceof HTMLSelectElement)) return;
       if (el.classList.contains('post-uid-mode')) {
         const form = el.closest('form');
-        const wrap = form ? form.querySelector('.post-uid-value-wrap') : null;
+        const wrap = form ? form.querySelector('.uid-custom-wrap') : null;
         if (wrap) {
-          wrap.style.display = el.value === 'custom' ? 'inline-flex' : 'none';
+          wrap.style.display = el.value === 'custom' ? 'flex' : 'none';
         }
       }
     });
@@ -433,28 +433,28 @@ class App {
       ? `
         <form id="thread-form" class="editor-box thread-editor-shell" autocomplete="off">
           <input type="hidden" id="thread-form-mode" value="create" />
-          <div class="post-editor-heading">■ 首页发新帖</div>
-          <table class="post-editor-table">
-            <tbody>
-              <tr>
-                <th>帖子 ID</th>
-                <td><input id="thread-id" name="id" placeholder="例如 my_thread" /></td>
-                <th>标题</th>
-                <td><input id="thread-title" name="title" placeholder="标题" /></td>
-              </tr>
-              <tr>
-                <th>副标题</th>
-                <td><input id="thread-subtitle" name="subtitle" placeholder="可选" /></td>
-                <th>选项</th>
-                <td>
-                  <label class="thread-featured-check">
-                    <input id="thread-featured" name="featured" type="checkbox" />
-                    <span>加精(良スレ)</span>
-                  </label>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="post-editor-heading">■ 发帖</div>
+          <div class="editor-form-grid">
+            <div class="editor-field">
+              <span class="label">帖子 ID</span>
+              <input id="thread-id" name="id" placeholder="例如 my_thread" />
+            </div>
+            <div class="editor-field">
+              <span class="label">标题</span>
+              <input id="thread-title" name="title" placeholder="标题" />
+            </div>
+            <div class="editor-field">
+              <span class="label">标题翻译</span>
+              <input id="thread-subtitle" name="subtitle" placeholder="中文翻译（可选）" />
+            </div>
+            <div class="editor-field">
+              <span class="label">选项</span>
+              <label class="thread-featured-check">
+                <input id="thread-featured" name="featured" type="checkbox" />
+                <span>加精(良スレ)</span>
+              </label>
+            </div>
+          </div>
           <div class="post-editor-actions">
             <button type="submit">保存帖子</button>
             <button type="button" data-action="cancel-thread-form">取消</button>
@@ -473,7 +473,6 @@ class App {
           <a href="#" data-action="toggle-mode">${isEdit ? '查看模式' : '编辑模式'}</a>
         </div>
       </header>
-      ${threadEditor}
       <div style="padding: 10px;">
         <table class="thread-table">
           <thead>
@@ -484,6 +483,7 @@ class App {
           </tbody>
         </table>
       </div>
+      ${threadEditor}
     `;
 
     document.title = '所长的谣言板';
@@ -723,7 +723,7 @@ class App {
     const cancelButton = mode === 'edit'
       ? `<button type="button" data-action="cancel-edit-post" data-post-number="${escapeHtml(values.number)}">取消</button>`
       : '<button type="button" data-action="cancel-post-form">清空</button>';
-    const uidCustomDisplay = values.uidMode === 'custom' ? 'inline-flex' : 'none';
+    const uidCustomDisplay = values.uidMode === 'custom' ? 'flex' : 'none';
     const modeClass = mode === 'edit' ? 'is-inline' : 'is-create';
     const quoteNumbers = this.parseQuoteNumbers(values.quote);
     const quoteText = this.quoteNumbersToText(quoteNumbers);
@@ -734,59 +734,58 @@ class App {
         <div class="post-editor-heading">■ ${heading}</div>
         <form class="post-form" data-mode="${mode}" autocomplete="off">
           <input type="hidden" name="number" value="${escapeHtml(values.number)}" />
-          <table class="post-editor-table">
-            <tbody>
-              <tr>
-                <th>姓名</th>
-                <td><input name="name" value="${escapeHtml(values.name)}" placeholder="名無しさん" /></td>
-                <th>发言人键</th>
-                <td><input name="authorKey" value="${escapeHtml(values.authorKey)}" placeholder="A / B / C" /></td>
-              </tr>
-              <tr>
-                <th>ID 模式</th>
-                <td>
-                  <div class="post-uid-controls no-wrap">
-                    <select name="uidMode" class="post-uid-mode">
-                      <option value="random"${values.uidMode === 'custom' ? '' : ' selected'}>随机 (同 key 固定)</option>
-                      <option value="custom"${values.uidMode === 'custom' ? ' selected' : ''}>自定义</option>
-                    </select>
-                    <span class="post-uid-value-wrap" style="display:${uidCustomDisplay};">
-                      <span class="post-inline-label">ID</span>
-                      <input name="uidValue" value="${escapeHtml(values.uidValue)}" placeholder="AbCdEf12" />
-                    </span>
-                  </div>
-                </td>
-                <th>ID 颜色</th>
-                <td><input name="uidColor" value="${escapeHtml(values.uidColor)}" placeholder="#666666" /></td>
-              </tr>
-              <tr>
-                <th>正文颜色</th>
-                <td><input name="bodyColor" value="${escapeHtml(values.bodyColor)}" placeholder="#000000" /></td>
-                <th>日期</th>
-                <td><input name="date" value="${escapeHtml(values.date)}" /></td>
-              </tr>
-              <tr>
-                <th>引用</th>
-                <td colspan="3">
-                  <div class="quote-builder">
-                    <span class="quote-builder-label">添加要引用的楼层</span>
-                    <input type="hidden" name="quote" value="${escapeHtml(quoteText)}" />
-                    <input class="quote-number-input" inputmode="numeric" pattern="[0-9]*" placeholder="楼层号" />
-                    <button type="button" data-action="add-quote-item">添加</button>
-                    <div class="quote-chip-list">${quoteChips}</div>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <th>正文</th>
-                <td colspan="3"><textarea name="body" rows="${mode === 'edit' ? '5' : '6'}" placeholder="正文...">${escapeHtml(values.body)}</textarea></td>
-              </tr>
-              <tr>
-                <th>翻译</th>
-                <td colspan="3"><textarea name="trans" rows="3" placeholder="会自动包装成 fake-trans 区块">${escapeHtml(values.trans)}</textarea></td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="editor-form-grid">
+            <div class="editor-field">
+              <span class="label">姓名</span>
+              <input name="name" value="${escapeHtml(values.name)}" placeholder="名無しさん" />
+            </div>
+            <div class="editor-field">
+              <span class="label">发言人</span>
+              <input name="authorKey" value="${escapeHtml(values.authorKey)}" placeholder="A / B / C" />
+              <span class="field-hint">同一名字 → 自动分配相同 ID</span>
+            </div>
+            <div class="editor-field">
+              <span class="label">ID</span>
+              <div class="uid-row">
+                <select name="uidMode" class="post-uid-mode">
+                  <option value="random"${values.uidMode === 'custom' ? '' : ' selected'}>自动（同一发言人共享）</option>
+                  <option value="custom"${values.uidMode === 'custom' ? ' selected' : ''}>手动指定</option>
+                </select>
+                <span class="uid-custom-wrap" style="display:${uidCustomDisplay};">
+                  <input name="uidValue" value="${escapeHtml(values.uidValue)}" placeholder="如 AbCdEf12" />
+                </span>
+              </div>
+            </div>
+            <div class="editor-field">
+              <span class="label">ID 颜色</span>
+              <input name="uidColor" value="${escapeHtml(values.uidColor)}" placeholder="#666666" />
+            </div>
+            <div class="editor-field">
+              <span class="label">正文颜色</span>
+              <input name="bodyColor" value="${escapeHtml(values.bodyColor)}" placeholder="#000000" />
+            </div>
+            <div class="editor-field">
+              <span class="label">日期</span>
+              <input name="date" value="${escapeHtml(values.date)}" />
+            </div>
+            <div class="editor-field full">
+              <span class="label">引用</span>
+              <div class="quote-builder">
+                <input type="hidden" name="quote" value="${escapeHtml(quoteText)}" />
+                <input class="quote-number-input" inputmode="numeric" pattern="[0-9]*" placeholder="楼层号" />
+                <button type="button" data-action="add-quote-item">添加</button>
+                <div class="quote-chip-list">${quoteChips}</div>
+              </div>
+            </div>
+            <div class="editor-field full">
+              <span class="label">正文</span>
+              <textarea name="body" rows="${mode === 'edit' ? '5' : '6'}" placeholder="正文...">${escapeHtml(values.body)}</textarea>
+            </div>
+            <div class="editor-field full">
+              <span class="label">翻译</span>
+              <textarea name="trans" rows="3" placeholder="会自动包装成 fake-trans 区块">${escapeHtml(values.trans)}</textarea>
+            </div>
+          </div>
           <div class="post-editor-actions">
             <button type="submit">${submitLabel}</button>
             ${cancelButton}
